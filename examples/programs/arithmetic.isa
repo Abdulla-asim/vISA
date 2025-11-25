@@ -1,0 +1,9 @@
+; Simple arithmetic example
+; Calculate: R0 = 5 + 3
+; Then: R1 = R0 * 2
+
+mov r0, r0      ; Initialize r0 to 5 (you'd set this via register initialization)
+mov r1, r1      ; Initialize r1 to 3
+add r2, r0, r1  ; R2 = R0 + R1 (5 + 3 = 8)
+mov r3, r2      ; R3 = R2 (copy result)
+halt            ; Stop execution

@@ -1,0 +1,5 @@
+D:/Programming/vISA/build/CMakeFiles/vISA.dir
+D:/Programming/vISA/build/CMakeFiles/visa_core.dir
+D:/Programming/vISA/build/CMakeFiles/test.dir
+D:/Programming/vISA/build/CMakeFiles/edit_cache.dir
+D:/Programming/vISA/build/CMakeFiles/rebuild_cache.dir

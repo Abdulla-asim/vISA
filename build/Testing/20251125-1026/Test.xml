@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Site BuildName="(empty)"
+	BuildStamp="20251125-1026-Experimental"
+	Name="(empty)"
+	Generator="ctest-4.2.0"
+	CompilerName=""
+	CompilerVersion=""
+	OSName="Windows"
+	Hostname="cyborg"
+	OSRelease="10.0.26200"
+	OSVersion="Windows 10"
+	OSPlatform="AMD64"
+	Is64Bits="1"
+	VendorString="GenuineIntel"
+	VendorID="Intel Corporation"
+	FamilyID="6"
+	ModelID="10"
+	ModelName=""
+	ProcessorCacheSize="-1"
+	NumberOfLogicalCPU="16"
+	NumberOfPhysicalCPU="10"
+	TotalVirtualMemory="19415"
+	TotalPhysicalMemory="16087"
+	LogicalProcessorsPerPhysical="1"
+	ProcessorClockFrequency="2400"
+	>
+	<Testing>
+		<StartDateTime>Nov 25 21:24 Pakistan Standard Time</StartDateTime>
+		<StartTestTime>1764087863</StartTestTime>
+		<TestList/>
+		<EndDateTime>Nov 25 21:24 Pakistan Standard Time</EndDateTime>
+		<EndTestTime>1764087863</EndTestTime>
+		<ElapsedMinutes>0</ElapsedMinutes>
+	</Testing>
+</Site>
