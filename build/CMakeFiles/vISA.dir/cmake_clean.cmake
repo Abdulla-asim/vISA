@@ -1,6 +1,6 @@
 file(REMOVE_RECURSE
-  "CMakeFiles/vISA.dir/src/hypervisor.c.obj"
-  "CMakeFiles/vISA.dir/src/hypervisor.c.obj.d"
+  "CMakeFiles/vISA.dir/src/hypervisor_isa.c.obj"
+  "CMakeFiles/vISA.dir/src/hypervisor_isa.c.obj.d"
   "CMakeFiles/vISA.dir/src/main.c.obj"
   "CMakeFiles/vISA.dir/src/main.c.obj.d"
   "libvISA.dll.a"

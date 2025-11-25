@@ -7,14 +7,14 @@
 },
 {
   "directory": "D:/Programming/vISA/build",
-  "command": "C:/msys64/mingw64/bin/gcc.exe  @CMakeFiles/vISA.dir/includes_C.rsp  -Wall -Wextra -O2 -g -std=gnu99 -o CMakeFiles/vISA.dir/src/hypervisor.c.obj -c D:/Programming/vISA/src/hypervisor.c",
-  "file": "D:/Programming/vISA/src/hypervisor.c",
-  "output": "CMakeFiles/vISA.dir/src/hypervisor.c.obj"
+  "command": "C:/msys64/mingw64/bin/gcc.exe  @CMakeFiles/vISA.dir/includes_C.rsp  -Wall -Wextra -O2 -g -std=gnu99 -o CMakeFiles/vISA.dir/src/hypervisor_isa.c.obj -c D:/Programming/vISA/src/hypervisor_isa.c",
+  "file": "D:/Programming/vISA/src/hypervisor_isa.c",
+  "output": "CMakeFiles/vISA.dir/src/hypervisor_isa.c.obj"
 },
 {
   "directory": "D:/Programming/vISA/build",
-  "command": "C:/msys64/mingw64/bin/gcc.exe  @CMakeFiles/visa_core.dir/includes_C.rsp  -Wall -Wextra -O2 -g -std=gnu99 -o CMakeFiles/visa_core.dir/src/vm.c.obj -c D:/Programming/vISA/src/vm.c",
-  "file": "D:/Programming/vISA/src/vm.c",
-  "output": "CMakeFiles/visa_core.dir/src/vm.c.obj"
+  "command": "C:/msys64/mingw64/bin/gcc.exe  @CMakeFiles/visa_core.dir/includes_C.rsp  -Wall -Wextra -O2 -g -std=gnu99 -o CMakeFiles/visa_core.dir/src/hypervisor_isa.c.obj -c D:/Programming/vISA/src/hypervisor_isa.c",
+  "file": "D:/Programming/vISA/src/hypervisor_isa.c",
+  "output": "CMakeFiles/visa_core.dir/src/hypervisor_isa.c.obj"
 }
 ]

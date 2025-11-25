@@ -152,29 +152,32 @@ visa_core/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/visa_core.dir/build.make CMakeFiles/visa_core.dir/build
 .PHONY : visa_core/fast
 
-src/hypervisor.obj: src/hypervisor.c.obj
-.PHONY : src/hypervisor.obj
+src/hypervisor_isa.obj: src/hypervisor_isa.c.obj
+.PHONY : src/hypervisor_isa.obj
 
 # target to build an object file
-src/hypervisor.c.obj:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/vISA.dir/build.make CMakeFiles/vISA.dir/src/hypervisor.c.obj
-.PHONY : src/hypervisor.c.obj
+src/hypervisor_isa.c.obj:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/vISA.dir/build.make CMakeFiles/vISA.dir/src/hypervisor_isa.c.obj
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/visa_core.dir/build.make CMakeFiles/visa_core.dir/src/hypervisor_isa.c.obj
+.PHONY : src/hypervisor_isa.c.obj
 
-src/hypervisor.i: src/hypervisor.c.i
-.PHONY : src/hypervisor.i
+src/hypervisor_isa.i: src/hypervisor_isa.c.i
+.PHONY : src/hypervisor_isa.i
 
 # target to preprocess a source file
-src/hypervisor.c.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/vISA.dir/build.make CMakeFiles/vISA.dir/src/hypervisor.c.i
-.PHONY : src/hypervisor.c.i
+src/hypervisor_isa.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/vISA.dir/build.make CMakeFiles/vISA.dir/src/hypervisor_isa.c.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/visa_core.dir/build.make CMakeFiles/visa_core.dir/src/hypervisor_isa.c.i
+.PHONY : src/hypervisor_isa.c.i
 
-src/hypervisor.s: src/hypervisor.c.s
-.PHONY : src/hypervisor.s
+src/hypervisor_isa.s: src/hypervisor_isa.c.s
+.PHONY : src/hypervisor_isa.s
 
 # target to generate assembly for a file
-src/hypervisor.c.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/vISA.dir/build.make CMakeFiles/vISA.dir/src/hypervisor.c.s
-.PHONY : src/hypervisor.c.s
+src/hypervisor_isa.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/vISA.dir/build.make CMakeFiles/vISA.dir/src/hypervisor_isa.c.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/visa_core.dir/build.make CMakeFiles/visa_core.dir/src/hypervisor_isa.c.s
+.PHONY : src/hypervisor_isa.c.s
 
 src/main.obj: src/main.c.obj
 .PHONY : src/main.obj
@@ -200,30 +203,6 @@ src/main.c.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/vISA.dir/build.make CMakeFiles/vISA.dir/src/main.c.s
 .PHONY : src/main.c.s
 
-src/vm.obj: src/vm.c.obj
-.PHONY : src/vm.obj
-
-# target to build an object file
-src/vm.c.obj:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/visa_core.dir/build.make CMakeFiles/visa_core.dir/src/vm.c.obj
-.PHONY : src/vm.c.obj
-
-src/vm.i: src/vm.c.i
-.PHONY : src/vm.i
-
-# target to preprocess a source file
-src/vm.c.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/visa_core.dir/build.make CMakeFiles/visa_core.dir/src/vm.c.i
-.PHONY : src/vm.c.i
-
-src/vm.s: src/vm.c.s
-.PHONY : src/vm.s
-
-# target to generate assembly for a file
-src/vm.c.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/visa_core.dir/build.make CMakeFiles/visa_core.dir/src/vm.c.s
-.PHONY : src/vm.c.s
-
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -235,15 +214,12 @@ help:
 	@echo "... test"
 	@echo "... vISA"
 	@echo "... visa_core"
-	@echo "... src/hypervisor.obj"
-	@echo "... src/hypervisor.i"
-	@echo "... src/hypervisor.s"
+	@echo "... src/hypervisor_isa.obj"
+	@echo "... src/hypervisor_isa.i"
+	@echo "... src/hypervisor_isa.s"
 	@echo "... src/main.obj"
 	@echo "... src/main.i"
 	@echo "... src/main.s"
-	@echo "... src/vm.obj"
-	@echo "... src/vm.i"
-	@echo "... src/vm.s"
 .PHONY : help
 
 

@@ -1,2 +1,2 @@
-C:/msys64/mingw64/bin/ar.exe qc libvisa_core.a CMakeFiles/visa_core.dir/src/vm.c.obj
+C:/msys64/mingw64/bin/ar.exe qc libvisa_core.a CMakeFiles/visa_core.dir/src/hypervisor_isa.c.obj
 C:/msys64/mingw64/bin/ranlib.exe libvisa_core.a

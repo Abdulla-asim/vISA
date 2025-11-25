@@ -87,31 +87,31 @@ CMakeFiles/vISA.dir/src/main.c.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling C source to assembly CMakeFiles/vISA.dir/src/main.c.s"
 	C:/msys64/mingw64/bin/gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S D:/Programming/vISA/src/main.c -o CMakeFiles/vISA.dir/src/main.c.s
 
-CMakeFiles/vISA.dir/src/hypervisor.c.obj: CMakeFiles/vISA.dir/flags.make
-CMakeFiles/vISA.dir/src/hypervisor.c.obj: CMakeFiles/vISA.dir/includes_C.rsp
-CMakeFiles/vISA.dir/src/hypervisor.c.obj: D:/Programming/vISA/src/hypervisor.c
-CMakeFiles/vISA.dir/src/hypervisor.c.obj: CMakeFiles/vISA.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=D:/Programming/vISA/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building C object CMakeFiles/vISA.dir/src/hypervisor.c.obj"
-	C:/msys64/mingw64/bin/gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/vISA.dir/src/hypervisor.c.obj -MF CMakeFiles/vISA.dir/src/hypervisor.c.obj.d -o CMakeFiles/vISA.dir/src/hypervisor.c.obj -c D:/Programming/vISA/src/hypervisor.c
+CMakeFiles/vISA.dir/src/hypervisor_isa.c.obj: CMakeFiles/vISA.dir/flags.make
+CMakeFiles/vISA.dir/src/hypervisor_isa.c.obj: CMakeFiles/vISA.dir/includes_C.rsp
+CMakeFiles/vISA.dir/src/hypervisor_isa.c.obj: D:/Programming/vISA/src/hypervisor_isa.c
+CMakeFiles/vISA.dir/src/hypervisor_isa.c.obj: CMakeFiles/vISA.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=D:/Programming/vISA/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building C object CMakeFiles/vISA.dir/src/hypervisor_isa.c.obj"
+	C:/msys64/mingw64/bin/gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/vISA.dir/src/hypervisor_isa.c.obj -MF CMakeFiles/vISA.dir/src/hypervisor_isa.c.obj.d -o CMakeFiles/vISA.dir/src/hypervisor_isa.c.obj -c D:/Programming/vISA/src/hypervisor_isa.c
 
-CMakeFiles/vISA.dir/src/hypervisor.c.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing C source to CMakeFiles/vISA.dir/src/hypervisor.c.i"
-	C:/msys64/mingw64/bin/gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E D:/Programming/vISA/src/hypervisor.c > CMakeFiles/vISA.dir/src/hypervisor.c.i
+CMakeFiles/vISA.dir/src/hypervisor_isa.c.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing C source to CMakeFiles/vISA.dir/src/hypervisor_isa.c.i"
+	C:/msys64/mingw64/bin/gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E D:/Programming/vISA/src/hypervisor_isa.c > CMakeFiles/vISA.dir/src/hypervisor_isa.c.i
 
-CMakeFiles/vISA.dir/src/hypervisor.c.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling C source to assembly CMakeFiles/vISA.dir/src/hypervisor.c.s"
-	C:/msys64/mingw64/bin/gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S D:/Programming/vISA/src/hypervisor.c -o CMakeFiles/vISA.dir/src/hypervisor.c.s
+CMakeFiles/vISA.dir/src/hypervisor_isa.c.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling C source to assembly CMakeFiles/vISA.dir/src/hypervisor_isa.c.s"
+	C:/msys64/mingw64/bin/gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S D:/Programming/vISA/src/hypervisor_isa.c -o CMakeFiles/vISA.dir/src/hypervisor_isa.c.s
 
 # Object files for target vISA
 vISA_OBJECTS = \
 "CMakeFiles/vISA.dir/src/main.c.obj" \
-"CMakeFiles/vISA.dir/src/hypervisor.c.obj"
+"CMakeFiles/vISA.dir/src/hypervisor_isa.c.obj"
 
 # External object files for target vISA
 vISA_EXTERNAL_OBJECTS =
 
 vISA.exe: CMakeFiles/vISA.dir/src/main.c.obj
-vISA.exe: CMakeFiles/vISA.dir/src/hypervisor.c.obj
+vISA.exe: CMakeFiles/vISA.dir/src/hypervisor_isa.c.obj
 vISA.exe: CMakeFiles/vISA.dir/build.make
 vISA.exe: CMakeFiles/vISA.dir/linkLibs.rsp
 vISA.exe: CMakeFiles/vISA.dir/objects1.rsp

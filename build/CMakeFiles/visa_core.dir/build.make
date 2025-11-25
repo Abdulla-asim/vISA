@@ -72,29 +72,29 @@ include CMakeFiles/visa_core.dir/flags.make
 CMakeFiles/visa_core.dir/codegen:
 .PHONY : CMakeFiles/visa_core.dir/codegen
 
-CMakeFiles/visa_core.dir/src/vm.c.obj: CMakeFiles/visa_core.dir/flags.make
-CMakeFiles/visa_core.dir/src/vm.c.obj: CMakeFiles/visa_core.dir/includes_C.rsp
-CMakeFiles/visa_core.dir/src/vm.c.obj: D:/Programming/vISA/src/vm.c
-CMakeFiles/visa_core.dir/src/vm.c.obj: CMakeFiles/visa_core.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=D:/Programming/vISA/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building C object CMakeFiles/visa_core.dir/src/vm.c.obj"
-	C:/msys64/mingw64/bin/gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/visa_core.dir/src/vm.c.obj -MF CMakeFiles/visa_core.dir/src/vm.c.obj.d -o CMakeFiles/visa_core.dir/src/vm.c.obj -c D:/Programming/vISA/src/vm.c
+CMakeFiles/visa_core.dir/src/hypervisor_isa.c.obj: CMakeFiles/visa_core.dir/flags.make
+CMakeFiles/visa_core.dir/src/hypervisor_isa.c.obj: CMakeFiles/visa_core.dir/includes_C.rsp
+CMakeFiles/visa_core.dir/src/hypervisor_isa.c.obj: D:/Programming/vISA/src/hypervisor_isa.c
+CMakeFiles/visa_core.dir/src/hypervisor_isa.c.obj: CMakeFiles/visa_core.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=D:/Programming/vISA/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building C object CMakeFiles/visa_core.dir/src/hypervisor_isa.c.obj"
+	C:/msys64/mingw64/bin/gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/visa_core.dir/src/hypervisor_isa.c.obj -MF CMakeFiles/visa_core.dir/src/hypervisor_isa.c.obj.d -o CMakeFiles/visa_core.dir/src/hypervisor_isa.c.obj -c D:/Programming/vISA/src/hypervisor_isa.c
 
-CMakeFiles/visa_core.dir/src/vm.c.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing C source to CMakeFiles/visa_core.dir/src/vm.c.i"
-	C:/msys64/mingw64/bin/gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E D:/Programming/vISA/src/vm.c > CMakeFiles/visa_core.dir/src/vm.c.i
+CMakeFiles/visa_core.dir/src/hypervisor_isa.c.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing C source to CMakeFiles/visa_core.dir/src/hypervisor_isa.c.i"
+	C:/msys64/mingw64/bin/gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E D:/Programming/vISA/src/hypervisor_isa.c > CMakeFiles/visa_core.dir/src/hypervisor_isa.c.i
 
-CMakeFiles/visa_core.dir/src/vm.c.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling C source to assembly CMakeFiles/visa_core.dir/src/vm.c.s"
-	C:/msys64/mingw64/bin/gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S D:/Programming/vISA/src/vm.c -o CMakeFiles/visa_core.dir/src/vm.c.s
+CMakeFiles/visa_core.dir/src/hypervisor_isa.c.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling C source to assembly CMakeFiles/visa_core.dir/src/hypervisor_isa.c.s"
+	C:/msys64/mingw64/bin/gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S D:/Programming/vISA/src/hypervisor_isa.c -o CMakeFiles/visa_core.dir/src/hypervisor_isa.c.s
 
 # Object files for target visa_core
 visa_core_OBJECTS = \
-"CMakeFiles/visa_core.dir/src/vm.c.obj"
+"CMakeFiles/visa_core.dir/src/hypervisor_isa.c.obj"
 
 # External object files for target visa_core
 visa_core_EXTERNAL_OBJECTS =
 
-libvisa_core.a: CMakeFiles/visa_core.dir/src/vm.c.obj
+libvisa_core.a: CMakeFiles/visa_core.dir/src/hypervisor_isa.c.obj
 libvisa_core.a: CMakeFiles/visa_core.dir/build.make
 libvisa_core.a: CMakeFiles/visa_core.dir/link.txt
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=D:/Programming/vISA/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Linking C static library libvisa_core.a"

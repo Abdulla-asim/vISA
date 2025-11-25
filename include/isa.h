@@ -37,17 +37,25 @@ typedef enum {
     GUEST_PAUSED = 3
 } guest_state_t;
 
-/* ============ VM EXIT REASONS ============ */
+/* ============ VM EXIT CAUSES ============ */
 typedef enum {
-    VMEXIT_INVALID_INSTRUCTION = 0x01,
-    VMEXIT_PRIVILEGED_INSTRUCTION = 0x02,
-    VMEXIT_SYSCALL = 0x03,
-    VMEXIT_INTERRUPT = 0x04,
-    VMEXIT_PAGE_FAULT = 0x05,
-    VMEXIT_IO_INSTRUCTION = 0x06,
-    VMEXIT_HYPERCALL = 0x07,
-    VMEXIT_HALT = 0xFF
-} vmexit_reason_t;
+    VMCAUSE_NONE = 0x00,
+    VMCAUSE_PRIVILEGED_INSTRUCTION = 0x01,  /* Guest tried privileged op */
+    VMCAUSE_IO_INSTRUCTION = 0x02,           /* Guest I/O instruction */
+    VMCAUSE_PAGE_FAULT = 0x03,               /* Guest page fault */
+    VMCAUSE_ILLEGAL_INSTRUCTION = 0x04,      /* Illegal opcode */
+    VMCAUSE_CR_WRITE = 0x05,                 /* Guest modified CR */
+    VMCAUSE_TIMER = 0x06,                    /* Timer interrupt */
+    VMCAUSE_EXTERNAL_INTERRUPT = 0x07,       /* External interrupt */
+} vmcause_t;
+
+/* ============ VM TRAP CONFIGURATION BITMASK ============ */
+typedef enum {
+    VMTRAPCFG_PRIVILEGED_INSTR = (1 << 0),   /* Trap privileged instructions */
+    VMTRAPCFG_CR_WRITE = (1 << 1),           /* Trap CR/page table writes */
+    VMTRAPCFG_IO_INSTR = (1 << 2),           /* Trap I/O instructions */
+    VMTRAPCFG_PAGE_FAULT = (1 << 3),         /* Trap page faults */
+} vmtrapcfg_bits_t;
 
 /* ============ INTERRUPT TYPES ============ */
 typedef enum {
@@ -61,6 +69,7 @@ typedef enum {
 
 /* ============ INSTRUCTION TYPES ============ */
 typedef enum {
+    /* Standard instructions */
     OP_ADD = 0x01,
     OP_SUB = 0x02,
     OP_MUL = 0x03,
@@ -73,8 +82,20 @@ typedef enum {
     OP_JNE = 0x0A,
     OP_CALL = 0x0B,
     OP_RET = 0x0C,
-    OP_SYSCALL = 0x20,     /* System call (guest → host) */
-    OP_HYPERCALL = 0x21,   /* Hypercall (guest → hypervisor) */
+    
+    /* System instructions */
+    OP_SYSCALL = 0x20,     /* System call */
+    OP_HYPERCALL = 0x21,   /* Hypercall */
+    
+    /* ============ VIRTUALIZATION ISA INSTRUCTIONS ============ */
+    OP_VMENTER = 0x30,      /* Enter guest: vmenter vmcs_ptr */
+    OP_VMRESUME = 0x31,     /* Resume guest: vmresume vmcs_ptr */
+    OP_VMCAUSE = 0x32,      /* Read exit cause: vmcause rd */
+    OP_VMTRAPCFG = 0x33,    /* Set trap config: vmtrapcfg rs */
+    OP_LDPGTR = 0x34,       /* Load guest page table root: ldpgtr rs */
+    OP_LDHPTR = 0x35,       /* Load host page table root: ldhptr rs */
+    OP_TLBFLUSHV = 0x36,    /* Flush guest TLB: tlbflushv */
+    
     OP_HALT = 0xFF
 } opcode_t;
 
@@ -118,6 +139,35 @@ typedef struct {
     bool writable;
 } ept_entry_t;
 
+/* ============ VIRTUAL MACHINE CONTROL STRUCTURE (VMCS) ============ */
+/* Stores complete guest state for save/restore */
+typedef struct {
+    uint32_t vmcs_id;
+    
+    /* Guest CPU State */
+    uint32_t guest_rax, guest_rbx, guest_rcx, guest_rdx;
+    uint32_t guest_rsi, guest_rdi, guest_rbp, guest_rsp;
+    uint32_t guest_r8, guest_r9, guest_r10, guest_r11;
+    uint32_t guest_r12, guest_r13, guest_r14, guest_r15;
+    uint32_t guest_pc;      /* Program counter */
+    uint32_t guest_flags;   /* Flags register */
+    
+    /* Memory Management */
+    uint32_t guest_pgtbl_root;  /* Guest page table base (CR3 equivalent) */
+    uint32_t host_pgtbl_root;   /* Host page table base */
+    
+    /* Guest Privilege */
+    uint8_t guest_priv;     /* PRIV_USER or PRIV_KERNEL */
+    
+    /* Exit Information */
+    vmcause_t exit_cause;       /* Why did guest exit? */
+    uint32_t exit_qualification; /* Additional exit info */
+    
+    /* Trap Configuration */
+    uint32_t trap_config;   /* Bitmask of which events cause VMEXIT */
+    
+} vmcs_t;
+
 /* ============ GUEST VIRTUAL CPU (vCPU) ============ */
 typedef struct {
     uint32_t guest_id;
@@ -130,12 +180,22 @@ typedef struct {
     
     /* Guest Memory Management */
     guest_page_table_entry_t guest_page_table[GUEST_VIRT_MEMORY_SIZE / PAGE_SIZE];
-    uint32_t guest_cr3;       /* Guest page table base */
+    uint32_t guest_pgtbl_root;    /* Guest page table base (CR3 equiv) */
+    
+    /* Host Memory Management */
+    uint32_t host_pgtbl_root;     /* Host page table base */
+    
+    /* Virtual Machine Control Structure */
+    vmcs_t vmcs;              /* Stores guest state for context switching */
+    
+    /* TLB (Translation Lookaside Buffer) */
+    uint32_t tlb_entries;     /* Number of cached translations */
+    bool tlb_valid;           /* TLB state valid */
     
     /* Guest State */
     guest_state_t state;
-    uint32_t exit_reason;     /* Last VMExit reason */
-    uint32_t exit_data;       /* Additional exit data */
+    vmcause_t last_exit_cause;  /* Last VMEXIT reason */
+    
 } vcpu_t;
 
 /* ============ GUEST VM ============ */
@@ -171,41 +231,40 @@ typedef struct hypervisor_t {
     bool halted;
 } hypervisor_t;
 
-/* ============ VMCS (Virtual Machine Control Structure) ============ */
-typedef struct {
-    uint32_t guest_id;
-    vmexit_reason_t exit_reason;
-    uint32_t exit_qualification;
-    uint32_t guest_linear_address;
-    uint32_t guest_physical_address;
-} vmcs_t;
+/* ============ HYPERVISOR ISA INSTRUCTION HANDLERS ============ */
 
+/* VMENTER vmcs_ptr - Enter guest mode */
+void isa_vmenter(hypervisor_t* hv, vmcs_t* vmcs);
 
+/* VMRESUME vmcs_ptr - Resume guest after VMEXIT */
+void isa_vmresume(hypervisor_t* hv, vmcs_t* vmcs);
 
-/* ============ HYPERVISOR API ============ */
+/* VMCAUSE rd - Read exit cause into register */
+uint32_t isa_vmcause(hypervisor_t* hv);
+
+/* VMTRAPCFG rs - Set trap configuration bitmask */
+void isa_vmtrapcfg(hypervisor_t* hv, uint32_t trap_config);
+
+/* LDPGTR rs - Load guest page table root */
+void isa_ldpgtr(hypervisor_t* hv, uint32_t guest_pgtbl);
+
+/* LDHPTR rs - Load host page table root */
+void isa_ldhptr(hypervisor_t* hv, uint32_t host_pgtbl);
+
+/* TLBFLUSHV - Flush guest TLB entries */
+void isa_tlbflushv(hypervisor_t* hv);
+
+/* ============ HYPERVISOR CORE API ============ */
 hypervisor_t* hypervisor_create(void);
 void hypervisor_destroy(hypervisor_t* hv);
 
 /* Guest VM Management */
 uint32_t hypervisor_create_guest(hypervisor_t* hv, const char* guest_image);
 void hypervisor_run_guest(hypervisor_t* hv, uint32_t guest_id);
-void hypervisor_pause_guest(hypervisor_t* hv, uint32_t guest_id);
-void hypervisor_stop_guest(hypervisor_t* hv, uint32_t guest_id);
 
-/* VM Entry/Exit */
-void vmentry(hypervisor_t* hv, guest_vm_t* guest);
-void vmexit(hypervisor_t* hv, guest_vm_t* guest, vmexit_reason_t reason);
-int handle_vmexit(hypervisor_t* hv, guest_vm_t* guest);
-
-/* Memory Translation (Two-level) */
+/* Memory Translation */
 uint32_t guest_translate_address(guest_vm_t* guest, uint32_t guest_virt_addr);
 uint32_t host_translate_address(hypervisor_t* hv, uint32_t guest_phys_addr);
-
-/* Hypercall Handling */
-void handle_hypercall(hypervisor_t* hv, guest_vm_t* guest, hypercall_number_t call);
-
-/* Guest I/O */
-void guest_print(hypervisor_t* hv, const char* msg);
 
 /* Debugging */
 void hypervisor_dump_state(hypervisor_t* hv);

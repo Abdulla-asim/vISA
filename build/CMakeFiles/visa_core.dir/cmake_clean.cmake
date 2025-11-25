@@ -1,6 +1,6 @@
 file(REMOVE_RECURSE
-  "CMakeFiles/visa_core.dir/src/vm.c.obj"
-  "CMakeFiles/visa_core.dir/src/vm.c.obj.d"
+  "CMakeFiles/visa_core.dir/src/hypervisor_isa.c.obj"
+  "CMakeFiles/visa_core.dir/src/hypervisor_isa.c.obj.d"
   "libvisa_core.a"
   "libvisa_core.pdb"
 )

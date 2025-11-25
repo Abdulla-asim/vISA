@@ -8,7 +8,7 @@ set(CMAKE_DEPENDS_LANGUAGES
 
 # The set of dependency files which are needed:
 set(CMAKE_DEPENDS_DEPENDENCY_FILES
-  "D:/Programming/vISA/src/hypervisor.c" "CMakeFiles/vISA.dir/src/hypervisor.c.obj" "gcc" "CMakeFiles/vISA.dir/src/hypervisor.c.obj.d"
+  "D:/Programming/vISA/src/hypervisor_isa.c" "CMakeFiles/vISA.dir/src/hypervisor_isa.c.obj" "gcc" "CMakeFiles/vISA.dir/src/hypervisor_isa.c.obj.d"
   "D:/Programming/vISA/src/main.c" "CMakeFiles/vISA.dir/src/main.c.obj" "gcc" "CMakeFiles/vISA.dir/src/main.c.obj.d"
   )
 

@@ -8,7 +8,7 @@ set(CMAKE_DEPENDS_LANGUAGES
 
 # The set of dependency files which are needed:
 set(CMAKE_DEPENDS_DEPENDENCY_FILES
-  "D:/Programming/vISA/src/vm.c" "CMakeFiles/visa_core.dir/src/vm.c.obj" "gcc" "CMakeFiles/visa_core.dir/src/vm.c.obj.d"
+  "D:/Programming/vISA/src/hypervisor_isa.c" "CMakeFiles/visa_core.dir/src/hypervisor_isa.c.obj" "gcc" "CMakeFiles/visa_core.dir/src/hypervisor_isa.c.obj.d"
   )
 
 # Targets to which this target links which contain Fortran sources.

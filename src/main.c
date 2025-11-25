@@ -5,9 +5,13 @@ int main(int argc, char* argv[]) {
     if (argc < 2) {
         fprintf(stderr, "Usage: %s <guest_image.bin> [guest2.bin ...]\n", argv[0]);
         fprintf(stderr, "Example: %s examples/programs/test.bin\n", argv[0]);
-        fprintf(stderr, "Multiple guests: %s guest1.bin guest2.bin\n", argv[0]);
         return 1;
     }
+
+    printf("======================================\n");
+    printf("  vISA Hypervisor (ISA-Based)\n");
+    printf("  Virtualization via ISA Instructions\n");
+    printf("======================================\n\n");
 
     /* Create hypervisor */
     hypervisor_t* hv = hypervisor_create();
@@ -15,10 +19,6 @@ int main(int argc, char* argv[]) {
         fprintf(stderr, "[ERROR] Failed to create hypervisor\n");
         return 1;
     }
-
-    printf("======================================\n");
-    printf("  vISA Hypervisor Virtual Machine\n");
-    printf("======================================\n\n");
 
     /* Load guest VMs */
     for (int i = 1; i < argc; i++) {
@@ -29,6 +29,8 @@ int main(int argc, char* argv[]) {
             return 1;
         }
     }
+
+    printf("\n");
 
     /* Run each guest */
     for (uint32_t i = 1; i <= hv->guest_count; i++) {
