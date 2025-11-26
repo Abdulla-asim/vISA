@@ -1,0 +1,196 @@
+Project Concept
+V-ISA: A Virtualization-Accelerated Instruction Set Architecture
+
+V-ISA is a custom ISA that introduces:
+
+A new privilege level for hypervisors
+
+New instructions to enter/exit virtual machines
+
+Hardware assistance for trapping, memory translation, and device virtualization
+
+Strong performance benefits compared to software-only virtualization
+
+The goal is to reduce:
+
+VM exit frequency
+
+Context switch overhead
+
+Software emulation overhead
+
+Performance loss from nested page table translation
+
+⚙️ Key Architectural Features
+1️⃣ New CPU Privilege Levels
+
+Traditional systems have 2 levels:
+
+Ring 0 – Kernel
+
+Ring 3 – User
+
+V-ISA adds one more:
+
+Ring -1 – Hypervisor Mode
+
+Meaning:
+
+Guest OS still thinks it is in Ring 0
+
+But hypervisor controls hardware at a lower level
+
+Prevents guest from compromising the host
+
+2️⃣ Virtualization Instruction Extensions
+VMENTER
+
+Transitions execution from hypervisor → guest VM context.
+VMENTER R1
+; R1 = pointer to VM Control Structure (VMCS)
+
+VMEXIT
+
+Guest traps to hypervisor due to:
+
+    Privileged operation
+
+    I/O instruction
+
+    Page fault
+
+    Device emulation
+
+    Timer interrupt
+
+Hypervisor resumes control.
+VMRESUME
+
+Resume guest after handling exit.
+VMSAVE / VMLOAD
+
+Save/restore complete VM register state efficiently.
+VMCAUSE
+
+Returns reason for last trap:
+
+0x01 – Illegal privileged instruction
+0x02 – I/O access
+0x03 – Control register write
+0x04 – Page fault
+0x05 – Timer interrupt
+...
+
+This eliminates the need for the hypervisor to decode faulting instructions in software.
+3️⃣ Nested Page Table Hardware
+Problem:
+
+Without hardware support:
+
+Guest OS maintains its own page tables
+
+Hypervisor also maintains host page tables
+
+CPU must translate virtual → guest physical → host physical
+
+Doing this in software = slow
+
+V-ISA Solution:
+
+Hardware implements nested paging:
+
+GPA → HPA translation done automatically
+
+2-level TLB caches combined mapping
+
+New registers:
+GPTBR   – Guest Page Table Base Register
+HPTBR   – Host Page Table Base Register
+
+New instructions:
+
+LDGPTBR R1   ; Load guest page table base
+LDHPTBR R2   ; Load host table base
+TLBFLUSHV    ; Flush dual-level TLB
+
+Hardware-Assisted Trap Filtering
+
+Hypervisor can configure which events cause VM exits.
+
+Register: VMTRAPCFG
+
+Bitmask example:
+b0 – Trap I/O instructions
+b1 – Trap privileged instructions
+b2 – Trap MSR read/write
+b3 – Trap CR3 updates
+b4 – Trap page faults
+...
+
+This allows:
+
+    Fast-path execution in guest without constant traps
+
+    Only important operations exit to hypervisor
+
+I/O Virtualization Support
+I/O Instruction Traps
+
+Instructions like IN, OUT, PCI configuration writes can be selectively trapped.
+
+New instructions:
+IOVMAP     – Map a virtual device MMIO range
+IOVMASK    – Mask guest access to I/O ports
+
+This lets hypervisor emulate real devices with minimal overhead.
+
+Virtual Interrupt Controller (VIC)
+
+EDR-style or classic designs need:
+
+Guest OS to see interrupts
+
+Hypervisor routing control
+
+New instructions:
+VINT_SEND R1   ; Inject virtual interrupt
+VINT_ACK       ; Acknowledge in guest
+VINT_STAT      ; Check pending interrupts
+
+VM Performance Counters
+New read-only counters:
+VMCOUNT_EXIT    – Number of VM exits
+VMCOUNT_EMU     – # of software-emulated instructions
+VMCOUNT_TLBMISS – # of combined TLB misses
+
+These enable:
+
+    Benchmarking
+
+    Analysis
+
+    Performance tuning
+
+Example VM Execution Flow
+Guest does privileged operation:
+MOV CR3, R1
+
+    Hardware detects trap (per VMTRAPCFG)
+
+    CPU auto-transitions to Ring-1
+
+    Sets exit reason in VMCAUSE
+
+    Stores guest state
+
+    Hypervisor handler executes
+
+    Possibly modifies memory or page tables
+
+    Hypervisor calls:
+
+VMRESUME
+
+    Guest continues execution
+
+This is exactly how real virtualization hardware works.

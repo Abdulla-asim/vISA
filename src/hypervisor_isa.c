@@ -198,6 +198,18 @@ uint32_t hypervisor_create_guest(hypervisor_t* hv, const char* guest_image) {
     memset(guest->guest_memory, 0, sizeof(guest->guest_memory));
     memset(guest->ept, 0, sizeof(guest->ept));
 
+    /* Initialize guest page table to map VA→PA identity */
+    memset(guest->vcpu.guest_page_table, 0, sizeof(guest->vcpu.guest_page_table));
+    uint32_t max_pages = GUEST_PHYS_MEMORY_SIZE / PAGE_SIZE;
+    for (uint32_t i = 0; i < max_pages; i++) {
+        guest->vcpu.guest_page_table[i].present = 1;
+        guest->vcpu.guest_page_table[i].guest_physical_page = i;
+        guest->vcpu.guest_page_table[i].accessed = 0;
+    }
+    guest->vcpu.guest_pgtbl_root = 0;  /* Page table at VA 0 */
+    guest->vcpu.host_pgtbl_root = 0;   /* Direct host mapping */
+    guest->vcpu.tlb_valid = true;
+
     /* Load guest image */
     FILE* file = fopen(guest_image, "rb");
     if (!file) {
@@ -302,8 +314,134 @@ void hypervisor_run_guest(hypervisor_t* hv, uint32_t guest_id) {
                     }
                     break;
 
+                case OP_MUL:
+                    if (instr.rd < REGISTER_COUNT && instr.rs1 < REGISTER_COUNT && instr.rs2 < REGISTER_COUNT) {
+                        guest->vcpu.registers[instr.rd] = 
+                            guest->vcpu.registers[instr.rs1] * guest->vcpu.registers[instr.rs2];
+                    }
+                    break;
+
+                case OP_DIV:
+                    if (instr.rd < REGISTER_COUNT && instr.rs1 < REGISTER_COUNT && instr.rs2 < REGISTER_COUNT) {
+                        if (guest->vcpu.registers[instr.rs2] != 0) {
+                            guest->vcpu.registers[instr.rd] = 
+                                guest->vcpu.registers[instr.rs1] / guest->vcpu.registers[instr.rs2];
+                        }
+                    }
+                    break;
+
+                case OP_MOV:
+                    if (instr.rd < REGISTER_COUNT && instr.rs1 < REGISTER_COUNT) {
+                        guest->vcpu.registers[instr.rd] = guest->vcpu.registers[instr.rs1];
+                    }
+                    break;
+
+                case OP_LOAD:
+                    if (instr.rd < REGISTER_COUNT && instr.rs1 < REGISTER_COUNT) {
+                        uint32_t addr = guest_translate_address(guest, guest->vcpu.registers[instr.rs1]);
+                        if (addr != 0xFFFFFFFF) {
+                            guest->vcpu.registers[instr.rd] = guest->guest_memory[addr];
+                        }
+                    }
+                    break;
+
+                case OP_STORE:
+                    if (instr.rs1 < REGISTER_COUNT && instr.rs2 < REGISTER_COUNT) {
+                        uint32_t addr = guest_translate_address(guest, guest->vcpu.registers[instr.rs1]);
+                        if (addr != 0xFFFFFFFF) {
+                            guest->guest_memory[addr] = guest->vcpu.registers[instr.rs2];
+                        }
+                    }
+                    break;
+
+                case OP_JMP:
+                    if (instr.rs1 < REGISTER_COUNT) {
+                        guest->vcpu.pc = guest->vcpu.registers[instr.rs1];
+                    }
+                    break;
+
+                case OP_JEQ:
+                    if (instr.rs1 < REGISTER_COUNT && instr.rs2 < REGISTER_COUNT && instr.rd < REGISTER_COUNT) {
+                        if (guest->vcpu.registers[instr.rs1] == guest->vcpu.registers[instr.rs2]) {
+                            guest->vcpu.pc = guest->vcpu.registers[instr.rd];
+                        }
+                    }
+                    break;
+
+                case OP_JNE:
+                    if (instr.rs1 < REGISTER_COUNT && instr.rs2 < REGISTER_COUNT && instr.rd < REGISTER_COUNT) {
+                        if (guest->vcpu.registers[instr.rs1] != guest->vcpu.registers[instr.rs2]) {
+                            guest->vcpu.pc = guest->vcpu.registers[instr.rd];
+                        }
+                    }
+                    break;
+
+                case OP_CALL:
+                    if (instr.rs1 < REGISTER_COUNT && guest->vcpu.sp > 0) {
+                        guest->guest_memory[guest->vcpu.sp] = (guest->vcpu.pc >> 8) & 0xFF;
+                        guest->guest_memory[guest->vcpu.sp - 1] = guest->vcpu.pc & 0xFF;
+                        guest->vcpu.sp -= 2;
+                        guest->vcpu.pc = guest->vcpu.registers[instr.rs1];
+                    }
+                    break;
+
+                case OP_RET:
+                    if (guest->vcpu.sp + 2 < GUEST_PHYS_MEMORY_SIZE) {
+                        guest->vcpu.pc = (guest->guest_memory[guest->vcpu.sp + 1] << 8) | 
+                                        guest->guest_memory[guest->vcpu.sp + 2];
+                        guest->vcpu.sp += 2;
+                    }
+                    break;
+
+                case OP_VMTRAPCFG:
+                    if (instr.rd < REGISTER_COUNT) {
+                        guest->vcpu.vmcs.trap_config = guest->vcpu.registers[instr.rd];
+                    }
+                    break;
+
+                case OP_LDPGTR:
+                    if (instr.rd < REGISTER_COUNT) {
+                        guest->vcpu.vmcs.guest_pgtbl_root = guest->vcpu.registers[instr.rd];
+                    }
+                    break;
+
+                case OP_LDHPTR:
+                    if (instr.rd < REGISTER_COUNT) {
+                        guest->vcpu.vmcs.host_pgtbl_root = guest->vcpu.registers[instr.rd];
+                    }
+                    break;
+
+                case OP_VMCAUSE:
+                    if (instr.rd < REGISTER_COUNT) {
+                        guest->vcpu.registers[instr.rd] = guest->vcpu.last_exit_cause;
+                    }
+                    break;
+
+                case OP_SYSCALL:
+                    hv->mode = MODE_HOST;
+                    guest->vcpu.state = GUEST_BLOCKED;
+                    guest->vcpu.last_exit_cause = VMCAUSE_PRIVILEGED_INSTRUCTION;
+                    break;
+
+                case OP_HYPERCALL:
+                    hv->mode = MODE_HOST;
+                    guest->vcpu.state = GUEST_BLOCKED;
+                    guest->vcpu.last_exit_cause = VMCAUSE_PRIVILEGED_INSTRUCTION;
+                    break;
+
+                case OP_TLBFLUSHV:
+                    guest->vcpu.tlb_valid = false;
+                    break;
+
                 case OP_VMENTER:
                     /* Guest trying to enter nested VM (shouldn't happen, trap it) */
+                    hv->mode = MODE_HOST;
+                    guest->vcpu.state = GUEST_BLOCKED;
+                    guest->vcpu.last_exit_cause = VMCAUSE_PRIVILEGED_INSTRUCTION;
+                    break;
+
+                case OP_VMRESUME:
+                    /* Guest trying to resume (shouldn't happen in guest context, trap it) */
                     hv->mode = MODE_HOST;
                     guest->vcpu.state = GUEST_BLOCKED;
                     guest->vcpu.last_exit_cause = VMCAUSE_PRIVILEGED_INSTRUCTION;
@@ -318,6 +456,7 @@ void hypervisor_run_guest(hypervisor_t* hv, uint32_t guest_id) {
                     hv->mode = MODE_HOST;
                     guest->vcpu.state = GUEST_BLOCKED;
                     guest->vcpu.last_exit_cause = VMCAUSE_ILLEGAL_INSTRUCTION;
+                    printf("[ILLEGAL_INSTR] Opcode 0x%02X at PC 0x%X\n", instr.opcode, guest->vcpu.pc - INSTRUCTION_SIZE);
                     break;
             }
 

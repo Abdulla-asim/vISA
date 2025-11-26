@@ -1,0 +1,32 @@
+; Example: Hypervisor setting up and entering a guest VM
+; This demonstrates the new virtualization ISA instructions
+
+; Setup hypervisor trap configuration
+mov r0, r1              ; Copy config from r1
+vmtrapcfg r0            ; Set trap configuration
+
+; Load guest page table root
+mov r1, r2              ; Get guest page table address
+ldpgtr r1               ; Load guest page table root
+
+; Load host page table root
+mov r2, r3              ; Get host page table address
+ldhptr r2               ; Load host page table root
+
+; Enter guest VM
+mov r3, r4              ; Get VMCS pointer
+vmenter r3              ; Enter guest mode
+
+; After guest exits, read exit cause
+vmcause r5              ; Read exit reason into r5
+
+; Check exit cause and handle it
+; (hypervisor would do real work here)
+
+; Resume guest
+vmresume r3             ; Resume from where guest exited
+
+; Flush TLB if needed
+tlbflushv               ; Flush guest TLB
+
+halt

@@ -8,6 +8,7 @@ import sys
 
 # Opcodes
 OPCODES = {
+    # Standard instructions
     'add': 0x01,
     'sub': 0x02,
     'mul': 0x03,
@@ -20,14 +21,32 @@ OPCODES = {
     'jne': 0x0A,
     'call': 0x0B,
     'ret': 0x0C,
+    
+    # System instructions
+    'syscall': 0x20,
+    'hypercall': 0x21,
+    
+    # Virtualization instructions
+    'vmenter': 0x30,
+    'vmresume': 0x31,
+    'vmcause': 0x32,
+    'vmtrapcfg': 0x33,
+    'ldpgtr': 0x34,
+    'ldhptr': 0x35,
+    'tlbflushv': 0x36,
+    
     'halt': 0xFF,
 }
 
 def parse_register(reg_str):
-    """Parse register string like 'r0', 'r1', etc."""
+    """Parse register string like 'r0', 'r1', etc. or immediate like '#0x10'"""
+    reg_str = reg_str.rstrip(',')
     if reg_str.lower().startswith('r'):
         return int(reg_str[1:])
-    raise ValueError(f"Invalid register: {reg_str}")
+    elif reg_str.startswith('#'):
+        # Parse immediate value (hex or decimal)
+        return int(reg_str[1:], 0)  # 0 base means auto-detect hex/decimal
+    raise ValueError(f"Invalid register/immediate: {reg_str}")
 
 def assemble(asm_text):
     """Assemble ISA assembly code to binary"""
@@ -61,6 +80,21 @@ def assemble(asm_text):
             rd = parse_register(parts[1].rstrip(','))
             rs1 = parse_register(parts[2])
             binary.extend(struct.pack('BBBB', opcode, rd, rs1, 0))
+        elif opcode_str in ['vmcause', 'vmtrapcfg', 'ldpgtr', 'ldhptr']:
+            # Format: vmcause r0  (single register operand)
+            rd = parse_register(parts[1])
+            binary.extend(struct.pack('BBBB', opcode, rd, 0, 0))
+        elif opcode_str in ['vmenter', 'vmresume']:
+            # Format: vmenter r0  (VMCS pointer in register)
+            rd = parse_register(parts[1]) if len(parts) > 1 else 0
+            binary.extend(struct.pack('BBBB', opcode, rd, 0, 0))
+        elif opcode_str == 'tlbflushv':
+            # Format: tlbflushv (no operands)
+            binary.extend(struct.pack('BBBB', opcode, 0, 0, 0))
+        elif opcode_str in ['syscall', 'hypercall']:
+            # Format: syscall [r0]  (optional register for syscall number)
+            rd = parse_register(parts[1]) if len(parts) > 1 else 0
+            binary.extend(struct.pack('BBBB', opcode, rd, 0, 0))
         else:
             raise ValueError(f"Unsupported instruction: {opcode_str}")
     
