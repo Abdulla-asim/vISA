@@ -226,6 +226,10 @@ uint32_t hypervisor_create_guest(hypervisor_t* hv, const char* guest_image) {
     }
 
     printf("[HYPERVISOR] Created Guest VM %u (loaded %zu bytes)\n", guest_id, bytes_read);
+    
+    /* Start guest in RUNNING state for scheduler */
+    guest->vcpu.state = GUEST_RUNNING;
+    
     return guest_id + 1;  /* Return 1-based ID */
 }
 
@@ -299,11 +303,17 @@ void hypervisor_run_guest(hypervisor_t* hv, uint32_t guest_id) {
             guest->vcpu.pc += INSTRUCTION_SIZE;
 
             /* Execute instruction */
+            printf("[EXEC] PC=0x%02X  Op=0x%02X rd=%u rs1=%u rs2=%u\n", 
+                   guest->vcpu.pc - INSTRUCTION_SIZE, instr.opcode, instr.rd, instr.rs1, instr.rs2);
+
             switch (instr.opcode) {
                 case OP_ADD:
                     if (instr.rd < REGISTER_COUNT && instr.rs1 < REGISTER_COUNT && instr.rs2 < REGISTER_COUNT) {
                         guest->vcpu.registers[instr.rd] = 
                             guest->vcpu.registers[instr.rs1] + guest->vcpu.registers[instr.rs2];
+                        printf("  ADD r%u = r%u(0x%X) + r%u(0x%X) = 0x%X\n", instr.rd, instr.rs1, 
+                               guest->vcpu.registers[instr.rs1], instr.rs2, guest->vcpu.registers[instr.rs2],
+                               guest->vcpu.registers[instr.rd]);
                     }
                     break;
 
@@ -333,6 +343,7 @@ void hypervisor_run_guest(hypervisor_t* hv, uint32_t guest_id) {
                 case OP_MOV:
                     if (instr.rd < REGISTER_COUNT && instr.rs1 < REGISTER_COUNT) {
                         guest->vcpu.registers[instr.rd] = guest->vcpu.registers[instr.rs1];
+                        printf("  MOV r%u = r%u (value 0x%X)\n", instr.rd, instr.rs1, guest->vcpu.registers[instr.rd]);
                     }
                     break;
 
@@ -396,12 +407,14 @@ void hypervisor_run_guest(hypervisor_t* hv, uint32_t guest_id) {
                 case OP_VMTRAPCFG:
                     if (instr.rd < REGISTER_COUNT) {
                         guest->vcpu.vmcs.trap_config = guest->vcpu.registers[instr.rd];
+                        printf("  VMTRAPCFG: Set trap config to 0x%X\n", guest->vcpu.vmcs.trap_config);
                     }
                     break;
 
                 case OP_LDPGTR:
                     if (instr.rd < REGISTER_COUNT) {
                         guest->vcpu.vmcs.guest_pgtbl_root = guest->vcpu.registers[instr.rd];
+                        printf("  LDPGTR: Set guest page table root to 0x%X\n", guest->vcpu.vmcs.guest_pgtbl_root);
                     }
                     break;
 
@@ -414,6 +427,7 @@ void hypervisor_run_guest(hypervisor_t* hv, uint32_t guest_id) {
                 case OP_VMCAUSE:
                     if (instr.rd < REGISTER_COUNT) {
                         guest->vcpu.registers[instr.rd] = guest->vcpu.last_exit_cause;
+                        printf("  VMCAUSE: Read exit cause 0x%X into r%u\n", guest->vcpu.last_exit_cause, instr.rd);
                     }
                     break;
 

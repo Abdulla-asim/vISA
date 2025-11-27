@@ -1,0 +1,5 @@
+; Guest VM 2 - Different program
+mov r5, r5      ; r5 = 0
+mov r6, r6      ; r6 = 0
+add r7, r5, r6  ; r7 = 0 + 0 = 0
+halt
