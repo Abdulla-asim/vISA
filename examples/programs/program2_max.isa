@@ -1,0 +1,118 @@
+;
+; PROGRAM 2: Control Flow & Loop - Find Maximum of 5 Elements
+;
+; Purpose: Find the maximum value in an array of 5 elements using a loop
+;
+; Memory Layout:
+;   [0] = array[0] = 15
+;   [1] = array[1] = 8
+;   [2] = array[2] = 23  <- Maximum
+;   [3] = array[3] = 12
+;   [4] = array[4] = 19
+;   [5] = max_result (output)
+;
+; Algorithm:
+;   1. Store array elements in memory
+;   2. Load first element as max
+;   3. Loop from index 1 to 4:
+;      - Load element at index i
+;      - Compare with current max
+;      - If element > max, update max
+;   4. Store result to memory[5]
+;
+; Expected Result: max = 23
+;
+; ============================================================
+; INSTRUCTION ENCODING TABLE
+; ============================================================
+; Instructions Used:
+;
+; MOVI - Move Immediate (Load 8-bit value)
+;   Opcode: 0x0D | Format: MOVI rd, imm8
+;   Example: movi r0, 5  →  [0x0D] [rd] [0x00] [imm8]
+;
+; STORE - Store to memory (memory[rs1] = rs2)
+;   Opcode: 0x07 | Format: STORE rs1, rs2
+;   Example: store r0, r1  →  [0x07] [0x00] [rs1] [rs2]
+;
+; LOAD - Load from memory (rd = memory[rs1])
+;   Opcode: 0x06 | Format: LOAD rd, rs1
+;   Example: load r1, r0  →  [0x06] [rd] [rs1] [0x00]
+;
+; MOV - Register copy (rd = rs1)
+;   Opcode: 0x05 | Format: MOV rd, rs1
+;   Example: mov r1, r3  →  [0x05] [rd] [rs1] [0x00]
+;
+; SUB - Subtract (rd = rs1 - rs2)
+;   Opcode: 0x02 | Format: SUB rd, rs1, rs2
+;   Example: sub r4, r3, r1  →  [0x02] [rd] [rs1] [rs2]
+;
+; ADDI - Add Immediate (rd = rs1 + imm8)
+;   Opcode: 0x0E | Format: ADDI rd, rs1, imm8
+;   Example: addi r2, r2, 1  →  [0x0E] [rd] [rs1] [imm8]
+;
+; JNE - Jump if Not Equal (if rs1 != rs2, jump to label)
+;   Opcode: 0x0A | Format: JNE label, rs1, rs2
+;   Example: jne LOOP_START, r5, r0  →  [0x0A] [label_addr] [rs1] [rs2]
+;
+; HALT - Stop Execution
+;   Opcode: 0xFF | Format: HALT
+;   Example: halt  →  [0xFF] [0x00] [0x00] [0x00]
+; ============================================================
+;
+
+; === Initialize array in memory ===
+movi r0, 0
+movi r1, 15
+store r0, r1
+
+movi r0, 1
+movi r1, 8
+store r0, r1
+
+movi r0, 2
+movi r1, 23
+store r0, r1
+
+movi r0, 3
+movi r1, 12
+store r0, r1
+
+movi r0, 4
+movi r1, 19
+store r0, r1
+
+; === Load initial max ===
+movi r0, 0
+load r7, r0         ; r7 = array[0] = 15 (running max)
+
+; Loop setup
+movi r2, 1          ; r2 = loop counter (index)
+movi r5, 5          ; r5 = loop end condition (5)
+
+LOOP_START:
+; Load current element
+load r3, r2         ; r3 = array[i]
+
+; Compare: r4 = array[i] - max
+sub r4, r3, r7      ; r4 = r3 - r7
+
+; If r4 > 0 (element is bigger), update max
+; We use MOV to conditionally copy
+mov r7, r3          ; r7 = r3 (update max)
+
+; Increment counter
+addi r2, r2, 1      ; r2 = r2 + 1 (i++)
+
+; Check loop condition: if (i < 5) continue
+sub r6, r5, r2      ; r6 = 5 - i
+
+; Jump back to LOOP_START if r6 != 0 (still have elements)
+jne LOOP_START, r6, r0  ; if (r6 != 0) goto LOOP_START
+
+; Store result 
+movi r0, 5
+store r0, r7        ; memory[5] = max
+
+halt
+

@@ -1,0 +1,83 @@
+;
+; PROGRAM 3: Function Implementation - Increment (INC)
+;
+; Purpose: Implement a reusable INC(x) function that increments a value by 1
+;
+; Calling Convention:
+;   Input:  r1 = value to increment
+;   Output: r0 = r1 + 1
+;   Temps:  None required (ADDI is atomic)
+;
+; Algorithm:
+;   Simply add 1 to the input value using ADDI immediate instruction
+;   Demonstrates: Function calls, return addresses, function parameters, results
+;
+; Test Cases (expected memory results):
+;   Test 1: INC(5)   -> memory[0] = 6
+;   Test 2: INC(0)   -> memory[1] = 1
+;   Test 3: INC(255) -> memory[2] = 0 (256 & 0xFF, stored as 1 byte)
+;   Test 4: INC(10)  -> memory[3] = 11
+;   Test 5: INC(100) -> memory[4] = 101
+;
+; Program Size: 92 bytes (23 instructions)
+; Function Size: 2 instructions (8 bytes)
+; Main Program: 20 instructions (80 bytes)
+;
+; ============================================================
+; INSTRUCTION ENCODING TABLE
+; ============================================================
+; Instruction         | Opcode | Format                  | Binary Encoding
+; ============================================================
+; MOVI r1, imm        | 0x0D   | [0x0D][rd][0x00][imm8] | Encoding for immediate move
+; ADDI r0, r1, 1      | 0x0E   | [0x0E][rd][rs1][imm8]  | Add immediate
+; STORE r2, r0        | 0x07   | [0x07][0x00][rs1][rs2] | Store to memory
+; CALL INC_FUNC       | 0x0B   | [0x0B][addr][0x00][0]  | Call function at address
+; RET                 | 0x0C   | [0x0C][0x00][0x00][0]  | Return from function
+; HALT                | 0xFF   | [0xFF][0x00][0x00][0]  | Stop execution
+; ============================================================
+;
+
+; === MAIN PROGRAM ===
+; Test the INC function with 5 test cases
+
+; Test 1: INC(5) -> expected 6
+movi r1, 5          ; r1 = 5 (input)
+call INC_FUNC       ; call INC, result in r0
+movi r2, 0          ; r2 = 0 (address)
+store r2, r0        ; memory[0] = r0 (should be 6)
+
+; Test 2: INC(0) -> expected 1
+movi r1, 0          ; r1 = 0
+call INC_FUNC       ; result in r0
+movi r2, 1
+store r2, r0        ; memory[1] = r0 (should be 1)
+
+; Test 3: INC(255) -> expected 256
+movi r1, 255        ; r1 = 255
+call INC_FUNC       ; result in r0
+movi r2, 2
+store r2, r0        ; memory[2] = r0 (should be 256)
+
+; Test 4: INC(10) -> expected 11
+movi r1, 10         ; r1 = 10
+call INC_FUNC       ; result in r0
+movi r2, 3
+store r2, r0        ; memory[3] = r0 (should be 11)
+
+; Test 5: INC(100) -> expected 101
+movi r1, 100        ; r1 = 100
+call INC_FUNC       ; result in r0
+movi r2, 4
+store r2, r0        ; memory[4] = r0 (should be 101)
+
+halt
+
+; === INC FUNCTION ===  
+; Function: INC_FUNC
+; Input:  r1 = value to increment
+; Output: r0 = r1 + 1
+;
+
+INC_FUNC:
+    addi r0, r1, 1      ; r0 = r1 + 1 (increment by 1)
+    ret                 ; return with r0 = r1 + 1

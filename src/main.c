@@ -38,7 +38,8 @@ int main(int argc, char* argv[]) {
     uint32_t total_ticks = 0;
     bool all_stopped = false;
     
-    while (!all_stopped) {
+    int max_ticks = 1000;  // Add safety limit
+    while (!all_stopped && total_ticks < max_ticks) {
         all_stopped = true;
         
         for (uint32_t i = 1; i <= hv->guest_count; i++) {
@@ -67,7 +68,7 @@ int main(int argc, char* argv[]) {
                         break;
                     }
 
-                    /* Fetch and execute one instruction */
+                    /* Fetch one instruction */
                     instruction_t instr;
                     instr.opcode = guest->guest_memory[guest_phys_addr];
                     instr.rd = guest->guest_memory[guest_phys_addr + 1];
@@ -89,6 +90,11 @@ int main(int argc, char* argv[]) {
                         case 0x0A: op_name = "JNE"; break;
                         case 0x0B: op_name = "CALL"; break;
                         case 0x0C: op_name = "RET"; break;
+                        case 0x0D: op_name = "MOVI"; break;
+                        case 0x0E: op_name = "ADDI"; break;
+                        case 0x0F: op_name = "SUBI"; break;
+                        case 0x10: op_name = "MULI"; break;
+                        case 0x11: op_name = "DIVI"; break;
                         case 0xFF: op_name = "HALT"; break;
                     }
                     printf("    [G%u:0x%02X] %s r%u r%u r%u\n", guest->vm_id, guest->vcpu.pc, 
@@ -98,10 +104,139 @@ int main(int argc, char* argv[]) {
                     slice_count++;
                     guest->instruction_count++;
                     
-                    /* Execute (simplified - just track execution) */
-                    if (instr.opcode == OP_HALT) {
-                        guest->vcpu.state = GUEST_STOPPED;
-                        hv->mode = MODE_HOST;
+                    /* Execute instruction */
+                    switch (instr.opcode) {
+                        case OP_ADD:
+                            if (instr.rd < REGISTER_COUNT && instr.rs1 < REGISTER_COUNT && instr.rs2 < REGISTER_COUNT) {
+                                guest->vcpu.registers[instr.rd] = 
+                                    guest->vcpu.registers[instr.rs1] + guest->vcpu.registers[instr.rs2];
+                            }
+                            break;
+
+                        case OP_SUB:
+                            if (instr.rd < REGISTER_COUNT && instr.rs1 < REGISTER_COUNT && instr.rs2 < REGISTER_COUNT) {
+                                guest->vcpu.registers[instr.rd] = 
+                                    guest->vcpu.registers[instr.rs1] - guest->vcpu.registers[instr.rs2];
+                            }
+                            break;
+
+                        case OP_MUL:
+                            if (instr.rd < REGISTER_COUNT && instr.rs1 < REGISTER_COUNT && instr.rs2 < REGISTER_COUNT) {
+                                guest->vcpu.registers[instr.rd] = 
+                                    guest->vcpu.registers[instr.rs1] * guest->vcpu.registers[instr.rs2];
+                            }
+                            break;
+
+                        case OP_DIV:
+                            if (instr.rd < REGISTER_COUNT && instr.rs1 < REGISTER_COUNT && instr.rs2 < REGISTER_COUNT) {
+                                if (guest->vcpu.registers[instr.rs2] != 0) {
+                                    guest->vcpu.registers[instr.rd] = 
+                                        guest->vcpu.registers[instr.rs1] / guest->vcpu.registers[instr.rs2];
+                                }
+                            }
+                            break;
+
+                        case OP_MOV:
+                            if (instr.rd < REGISTER_COUNT && instr.rs1 < REGISTER_COUNT) {
+                                guest->vcpu.registers[instr.rd] = guest->vcpu.registers[instr.rs1];
+                            }
+                            break;
+
+                        case OP_LOAD:
+                            if (instr.rd < REGISTER_COUNT && instr.rs1 < REGISTER_COUNT) {
+                                uint32_t addr = guest_translate_address(guest, guest->vcpu.registers[instr.rs1]);
+                                if (addr != 0xFFFFFFFF) {
+                                    guest->vcpu.registers[instr.rd] = guest->guest_memory[addr];
+                                }
+                            }
+                            break;
+
+                        case OP_STORE:
+                            if (instr.rs1 < REGISTER_COUNT && instr.rs2 < REGISTER_COUNT) {
+                                uint32_t addr = guest_translate_address(guest, guest->vcpu.registers[instr.rs1]);
+                                if (addr != 0xFFFFFFFF) {
+                                    guest->guest_memory[addr] = guest->vcpu.registers[instr.rs2];
+                                }
+                            }
+                            break;
+
+                        /* ============ IMMEDIATE INSTRUCTIONS ============ */
+                        case OP_MOVI:
+                            if (instr.rd < REGISTER_COUNT) {
+                                guest->vcpu.registers[instr.rd] = (uint32_t)instr.rs2;
+                            }
+                            break;
+
+                        case OP_ADDI:
+                            if (instr.rd < REGISTER_COUNT && instr.rs1 < REGISTER_COUNT) {
+                                guest->vcpu.registers[instr.rd] = 
+                                    guest->vcpu.registers[instr.rs1] + (uint32_t)instr.rs2;
+                            }
+                            break;
+
+                        case OP_SUBI:
+                            if (instr.rd < REGISTER_COUNT && instr.rs1 < REGISTER_COUNT) {
+                                guest->vcpu.registers[instr.rd] = 
+                                    guest->vcpu.registers[instr.rs1] - (uint32_t)instr.rs2;
+                            }
+                            break;
+
+                        case OP_MULI:
+                            if (instr.rd < REGISTER_COUNT && instr.rs1 < REGISTER_COUNT) {
+                                guest->vcpu.registers[instr.rd] = 
+                                    guest->vcpu.registers[instr.rs1] * (uint32_t)instr.rs2;
+                            }
+                            break;
+
+                        case OP_DIVI:
+                            if (instr.rd < REGISTER_COUNT && instr.rs1 < REGISTER_COUNT) {
+                                if (instr.rs2 != 0) {
+                                    guest->vcpu.registers[instr.rd] = 
+                                        guest->vcpu.registers[instr.rs1] / (uint32_t)instr.rs2;
+                                }
+                            }
+                            break;
+
+                        case OP_CALL:
+                            if (guest->vcpu.sp > 3) {
+                                // Save return address (current PC which is already at next instruction)
+                                uint32_t return_addr = guest->vcpu.pc;
+                                guest->guest_memory[guest->vcpu.sp - 3] = (return_addr >> 24) & 0xFF;
+                                guest->guest_memory[guest->vcpu.sp - 2] = (return_addr >> 16) & 0xFF;
+                                guest->guest_memory[guest->vcpu.sp - 1] = (return_addr >> 8) & 0xFF;
+                                guest->guest_memory[guest->vcpu.sp] = return_addr & 0xFF;
+                                guest->vcpu.sp -= 4;
+                                
+                                // Jump to function address in rd (instruction address, not byte address)
+                                if (instr.rd != 0) {
+                                    guest->vcpu.pc = instr.rd * INSTRUCTION_SIZE;
+                                } else if (instr.rs1 < REGISTER_COUNT) {
+                                    guest->vcpu.pc = guest->vcpu.registers[instr.rs1];
+                                }
+                            }
+                            break;
+
+                        case OP_RET:
+                            if (guest->vcpu.sp + 4 <= GUEST_PHYS_MEMORY_SIZE) {
+                                // Restore 32-bit return address from stack
+                                // We saved at: SP-3, SP-2, SP-1, SP (before SP -= 4)
+                                // Now SP points to old (SP-4), so old SP = current SP + 4
+                                uint32_t saved_sp = guest->vcpu.sp + 4;  // Reconstruct original SP
+                                guest->vcpu.pc = ((uint32_t)guest->guest_memory[saved_sp - 3] << 24) |
+                                                ((uint32_t)guest->guest_memory[saved_sp - 2] << 16) |
+                                                ((uint32_t)guest->guest_memory[saved_sp - 1] << 8) |
+                                                ((uint32_t)guest->guest_memory[saved_sp]);
+                                guest->vcpu.sp += 4;
+                            }
+                            break;
+
+                        case OP_HALT:
+                            guest->vcpu.state = GUEST_STOPPED;
+                            hv->mode = MODE_HOST;
+                            break;
+
+                        default:
+                            break;
                     }
                 }
                 

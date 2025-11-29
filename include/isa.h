@@ -83,6 +83,13 @@ typedef enum {
     OP_CALL = 0x0B,
     OP_RET = 0x0C,
     
+    /* Immediate instructions (8-bit immediate value in byte 3) */
+    OP_MOVI = 0x0D,    /* movi rd, imm8  - move immediate 8-bit value */
+    OP_ADDI = 0x0E,    /* addi rd, rs, imm8 - add immediate */
+    OP_SUBI = 0x0F,    /* subi rd, rs, imm8 - subtract immediate */
+    OP_MULI = 0x10,    /* muli rd, rs, imm8 - multiply immediate */
+    OP_DIVI = 0x11,    /* divi rd, rs, imm8 - divide immediate */
+    
     /* System instructions */
     OP_SYSCALL = 0x20,     /* System call */
     OP_HYPERCALL = 0x21,   /* Hypercall */

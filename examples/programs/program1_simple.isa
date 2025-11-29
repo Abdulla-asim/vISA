@@ -1,0 +1,95 @@
+;
+; PROGRAM 1: Basic Arithmetic & Memory
+;
+; Purpose: Compute result = A + B - C where A, B, C are stored in memory
+;
+; Memory Layout:
+;   [0] = A = 10
+;   [1] = B = 5
+;   [2] = C = 3
+;   [3] = result (output)
+;
+; Expected Result: 10 + 5 - 3 = 12
+;
+
+; INSTRUCTION ENCODING TABLE
+; ISA Format: 4-byte fixed instruction (32-bit)
+;   Byte 0: OPCODE (1 byte)
+;   Byte 1: rd (destination register, 0-31)
+;   Byte 2: rs1 (source register 1, 0-31)
+;   Byte 3: rs2 (source register 2 / immediate 8-bit)
+;
+; Instructions Used:
+;
+; MOVI - Move Immediate (Load 8-bit immediate value into register)
+;   Opcode: 0x0D
+;   Format: MOVI rd, imm8
+;   Encoding: [0x0D] [rd] [0x00] [imm8]
+;   Example: movi r0, 10  →  0x0D 0x00 0x00 0x0A
+;
+; STORE - Store (Write register to memory address)
+;   Opcode: 0x07
+;   Format: STORE rs1, rs2  (where rs1=address, rs2=value)
+;   Encoding: [0x07] [0x00] [rs1] [rs2]
+;   Example: store r0, r1  →  0x07 0x00 0x00 0x01
+;
+; LOAD - Load (Read from memory address into register)
+;   Opcode: 0x06
+;   Format: LOAD rd, rs1  (where rd=dest, rs1=address)
+;   Encoding: [0x06] [rd] [rs1] [0x00]
+;   Example: load r1, r0  →  0x06 0x01 0x00 0x00
+;
+; ADD - Add (rd = rs1 + rs2)
+;   Opcode: 0x01
+;   Format: ADD rd, rs1, rs2
+;   Encoding: [0x01] [rd] [rs1] [rs2]
+;   Example: add r4, r1, r2  →  0x01 0x04 0x01 0x02
+;
+; SUB - Subtract (rd = rs1 - rs2)
+;   Opcode: 0x02
+;   Format: SUB rd, rs1, rs2
+;   Encoding: [0x02] [rd] [rs1] [rs2]
+;   Example: sub r5, r4, r3  →  0x02 0x05 0x04 0x03
+;
+; HALT - Stop Execution
+;   Opcode: 0xFF
+;   Format: HALT
+;   Encoding: [0xFF] [0x00] [0x00] [0x00]
+; ============================================================
+;
+
+; Store A in memory
+movi r0, 0          ; r0 = address 0
+movi r1, 10         ; r1 = 10 (A)
+store r0, r1        ; memory[0] = 10
+
+; Store B in memory
+movi r0, 1          ; r0 = address 1
+movi r1, 5          ; r1 = 5 (B)
+store r0, r1        ; memory[1] = 5
+
+; Store C in memory
+movi r0, 2          ; r0 = address 2
+movi r1, 3          ; r1 = 3 (C)
+store r0, r1        ; memory[2] = 3
+
+; Load A, B, C from memory
+movi r0, 0          ; r0 = address 0
+load r1, r0         ; r1 = memory[0] = 10 (A)
+
+movi r0, 1          ; r0 = address 1
+load r2, r0         ; r2 = memory[1] = 5 (B)
+
+movi r0, 2          ; r0 = address 2
+load r3, r0         ; r3 = memory[2] = 3 (C)
+
+; Compute A + B - C
+add r4, r1, r2      ; r4 = r1 + r2 = 10 + 5 = 15
+sub r5, r4, r3      ; r5 = r4 - r3 = 15 - 3 = 12
+
+; Store result to memory at address 3
+movi r0, 3          ; r0 = address 3
+store r0, r5        ; memory[3] = 12
+
+; Halt
+halt

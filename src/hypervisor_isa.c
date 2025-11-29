@@ -388,19 +388,31 @@ void hypervisor_run_guest(hypervisor_t* hv, uint32_t guest_id) {
                     break;
 
                 case OP_CALL:
-                    if (instr.rs1 < REGISTER_COUNT && guest->vcpu.sp > 0) {
-                        guest->guest_memory[guest->vcpu.sp] = (guest->vcpu.pc >> 8) & 0xFF;
-                        guest->guest_memory[guest->vcpu.sp - 1] = guest->vcpu.pc & 0xFF;
-                        guest->vcpu.sp -= 2;
-                        guest->vcpu.pc = guest->vcpu.registers[instr.rs1];
+                    if (guest->vcpu.sp > 3) {
+                        // Save return address (current PC + 4 bytes to next instruction)
+                        uint32_t return_addr = guest->vcpu.pc + INSTRUCTION_SIZE;
+                        guest->guest_memory[guest->vcpu.sp - 3] = (return_addr >> 24) & 0xFF;
+                        guest->guest_memory[guest->vcpu.sp - 2] = (return_addr >> 16) & 0xFF;
+                        guest->guest_memory[guest->vcpu.sp - 1] = (return_addr >> 8) & 0xFF;
+                        guest->guest_memory[guest->vcpu.sp] = return_addr & 0xFF;
+                        guest->vcpu.sp -= 4;
+                        
+                        // Jump to function address in rd (or rs1 if rd is 0)
+                        if (instr.rd != 0) {
+                            guest->vcpu.pc = instr.rd * INSTRUCTION_SIZE;
+                        } else if (instr.rs1 < REGISTER_COUNT) {
+                            guest->vcpu.pc = guest->vcpu.registers[instr.rs1];
+                        }
                     }
                     break;
 
                 case OP_RET:
-                    if (guest->vcpu.sp + 2 < GUEST_PHYS_MEMORY_SIZE) {
-                        guest->vcpu.pc = (guest->guest_memory[guest->vcpu.sp + 1] << 8) | 
-                                        guest->guest_memory[guest->vcpu.sp + 2];
-                        guest->vcpu.sp += 2;
+                    if (guest->vcpu.sp + 4 <= GUEST_PHYS_MEMORY_SIZE) {
+                        guest->vcpu.pc = ((uint32_t)guest->guest_memory[guest->vcpu.sp] << 24) |
+                                        ((uint32_t)guest->guest_memory[guest->vcpu.sp + 1] << 16) |
+                                        ((uint32_t)guest->guest_memory[guest->vcpu.sp + 2] << 8) |
+                                        ((uint32_t)guest->guest_memory[guest->vcpu.sp + 3]);
+                        guest->vcpu.sp += 4;
                     }
                     break;
 
@@ -459,6 +471,57 @@ void hypervisor_run_guest(hypervisor_t* hv, uint32_t guest_id) {
                     hv->mode = MODE_HOST;
                     guest->vcpu.state = GUEST_BLOCKED;
                     guest->vcpu.last_exit_cause = VMCAUSE_PRIVILEGED_INSTRUCTION;
+                    break;
+
+                /* ============ IMMEDIATE INSTRUCTIONS ============ */
+                case OP_MOVI:
+                    /* movi rd, imm8 - load immediate 8-bit value */
+                    if (instr.rd < REGISTER_COUNT) {
+                        guest->vcpu.registers[instr.rd] = (uint32_t)instr.rs2;
+                        printf("  MOVI r%u = 0x%X\n", instr.rd, instr.rs2);
+                    }
+                    break;
+
+                case OP_ADDI:
+                    /* addi rd, rs1, imm8 - rd = rs1 + imm8 */
+                    if (instr.rd < REGISTER_COUNT && instr.rs1 < REGISTER_COUNT) {
+                        guest->vcpu.registers[instr.rd] = 
+                            guest->vcpu.registers[instr.rs1] + (uint32_t)instr.rs2;
+                        printf("  ADDI r%u = r%u(0x%X) + 0x%X = 0x%X\n", instr.rd, instr.rs1,
+                               guest->vcpu.registers[instr.rs1], instr.rs2, guest->vcpu.registers[instr.rd]);
+                    }
+                    break;
+
+                case OP_SUBI:
+                    /* subi rd, rs1, imm8 - rd = rs1 - imm8 */
+                    if (instr.rd < REGISTER_COUNT && instr.rs1 < REGISTER_COUNT) {
+                        guest->vcpu.registers[instr.rd] = 
+                            guest->vcpu.registers[instr.rs1] - (uint32_t)instr.rs2;
+                        printf("  SUBI r%u = r%u(0x%X) - 0x%X = 0x%X\n", instr.rd, instr.rs1,
+                               guest->vcpu.registers[instr.rs1], instr.rs2, guest->vcpu.registers[instr.rd]);
+                    }
+                    break;
+
+                case OP_MULI:
+                    /* muli rd, rs1, imm8 - rd = rs1 * imm8 */
+                    if (instr.rd < REGISTER_COUNT && instr.rs1 < REGISTER_COUNT) {
+                        guest->vcpu.registers[instr.rd] = 
+                            guest->vcpu.registers[instr.rs1] * (uint32_t)instr.rs2;
+                        printf("  MULI r%u = r%u(0x%X) * 0x%X = 0x%X\n", instr.rd, instr.rs1,
+                               guest->vcpu.registers[instr.rs1], instr.rs2, guest->vcpu.registers[instr.rd]);
+                    }
+                    break;
+
+                case OP_DIVI:
+                    /* divi rd, rs1, imm8 - rd = rs1 / imm8 */
+                    if (instr.rd < REGISTER_COUNT && instr.rs1 < REGISTER_COUNT) {
+                        if (instr.rs2 != 0) {
+                            guest->vcpu.registers[instr.rd] = 
+                                guest->vcpu.registers[instr.rs1] / (uint32_t)instr.rs2;
+                            printf("  DIVI r%u = r%u(0x%X) / 0x%X = 0x%X\n", instr.rd, instr.rs1,
+                                   guest->vcpu.registers[instr.rs1], instr.rs2, guest->vcpu.registers[instr.rd]);
+                        }
+                    }
                     break;
 
                 case OP_HALT:
@@ -520,4 +583,20 @@ void guest_dump_state(guest_vm_t* guest) {
     printf("  Last Exit Cause: 0x%X\n", guest->vcpu.last_exit_cause);
     printf("  Instructions: %u\n", guest->instruction_count);
     printf("  TLB Valid: %s\n", guest->vcpu.tlb_valid ? "YES" : "NO");
+    
+    /* Print registers r0-r15 */
+    printf("\n  [REGISTERS]\n");
+    for (int i = 0; i < 16; i++) {
+        printf("    r%u = 0x%08X", i, guest->vcpu.registers[i]);
+        if ((i + 1) % 4 == 0) printf("\n");
+        else printf("  ");
+    }
+    
+    /* Print first 20 bytes of memory */
+    printf("\n  [MEMORY (first 20 bytes - Program Results)]\n");
+    for (int i = 0; i < 20; i++) {
+        printf("    [%u] = 0x%02X", i, guest->guest_memory[i]);
+        if ((i + 1) % 4 == 0) printf("\n");
+        else printf("  ");
+    }
 }
