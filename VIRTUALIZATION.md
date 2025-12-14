@@ -1,137 +1,119 @@
-# Virtualization Architecture
+# Hypervisor-Based Virtualization Architecture
 
-This document explains the virtualization support added to vISA.
+This document explains the hypervisor virtualization system in vISA, which runs multiple isolated guest virtual machines.
+
+## Architecture Overview
+
+vISA implements **hypervisor-based virtualization** where:
+- The **Hypervisor** (host mode) manages all resources and guest VMs
+- Each **Guest VM** runs in isolated guest mode with:
+  - 32 virtual CPU registers (r0-r31)
+  - 16 KB isolated guest physical memory
+  - Separate page tables (2-level translation)
+  - Virtual VMCS (VM Control Structure)
+  - Independent execution state
 
 ## Core Concepts
 
-### 1. **Privilege Levels**
-- **PRIV_KERNEL** (1) - Can execute all instructions, modify page tables, handle interrupts
-- **PRIV_USER** (0) - Limited instruction set, cannot modify system state directly
+### 1. **Virtual CPU (vCPU)**
 
-```c
-typedef enum {
-    PRIV_USER = 0,
-    PRIV_KERNEL = 1
-} privilege_level_t;
-```
-
-### 2. **Memory Management Unit (MMU)**
-
-Each process has its own virtual address space (4 MB), mapped to shared physical memory (64 KB) through page tables.
-
-**Key Features:**
-- Virtual-to-physical address translation
-- Per-process page tables (4 KB pages)
-- Page faults detection
-- Access tracking (accessed, dirty bits)
-
-**File:** `src/mmu.c`
-
-```c
-uint32_t phys_addr = mmu_translate_address(process, virt_addr);
-```
-
-### 3. **Process Control Block (PCB)**
-
-Each process has its own:
-- 32 registers (isolated state)
+Each guest has an isolated vCPU with:
+- 32 general-purpose registers (r0-r31)
 - Program counter (PC)
-- Stack pointer (SP)
-- Page table (virtual memory space)
-- Process ID (PID)
-- State (READY, RUNNING, BLOCKED, TERMINATED)
+- Guest state tracking
+- Virtual VMCS (VM Control Structure)
 
 ```c
 typedef struct {
-    uint32_t pid;
-    process_state_t state;
-    privilege_level_t priv;
-    uint32_t registers[REGISTER_COUNT];
-    uint32_t pc, sp, fp;
-    page_table_entry_t page_table[PAGES_PER_PROCESS];
-} process_t;
+    uint32_t registers[32];      /* Guest CPU registers */
+    uint32_t pc;                 /* Program counter */
+    guest_state_t state;         /* RUNNING, STOPPED, BLOCKED, PAUSED */
+    vmcs_t vmcs;                 /* VM Control Structure */
+} vcpu_t;
 ```
 
-### 4. **Context Switching & Scheduling**
+### 2. **Guest Memory Model**
 
-- **Round-Robin scheduling** with time slices (1000 instructions)
-- Automatic context switching between runnable processes
-- Process states: READY → RUNNING → (→ BLOCKED) → TERMINATED
+Each guest has:
+- **Virtual Address Space**: 4 MB (guest-visible)
+- **Physical Memory**: 16 KB (actual allocated)
+- **2-Level Translation**:
+  - Guest page table: Virtual → Guest Physical
+  - Hypervisor: Guest Physical → Host Physical
 
 ```c
-void vm_schedule_next(vm_t* vm);  /* Switch to next process */
-void vm_run(vm_t* vm);             /* Main execution loop */
+/* Guest virtual address translation */
+uint32_t guest_phys = guest_translate_address(guest, guest_virt);
+
+/* Access guest memory */
+uint8_t data = guest->guest_memory[guest_phys];
 ```
 
-### 5. **Interrupts & System Calls**
+### 3. **Context Switching & Scheduling**
 
-Processes can trigger interrupts through:
-- **IRQ_SYSCALL** - System calls (exit, write, read, malloc, free)
-- **IRQ_PAGE_FAULT** - Virtual address not in physical memory
-- **IRQ_DIVIDE_BY_ZERO** - Arithmetic error
-- **IRQ_INVALID_INSTRUCTION** - Unknown opcode
-- **IRQ_TIMER** - Time slice expired
-- **IRQ_IO** - I/O operation
+- **Round-robin scheduling** with 2-instruction time slices
+- Automatic context switching between guests
+- Guest states: RUNNING → STOPPED/BLOCKED → PAUSED
 
 ```c
-void vm_handle_interrupt(vm_t* vm, interrupt_type_t irq, uint32_t data);
+/* Main hypervisor loop */
+while (!all_stopped) {
+    for (each guest) {
+        if (guest->state == GUEST_RUNNING) {
+            run_guest_time_slice(guest, 2);  /* 2 instructions per slice */
+        }
+    }
+}
 ```
 
-**System Call Example:**
+### 4. **Privilege Levels** (Defined but not enforced in current impl)
+
+- **PRIV_KERNEL** (1) - Full access (hypervisor)
+- **PRIV_USER** (0) - Limited (guests)
+
+### 5. **VM Exit Causes**
+
+Guests trigger VM exits for special events:
+- **VMCAUSE_PRIVILEGED_INSTRUCTION** - Guest tried privileged op
+- **VMCAUSE_IO_INSTRUCTION** - Guest I/O instruction
+- **VMCAUSE_PAGE_FAULT** - Guest page fault
+- **VMCAUSE_ILLEGAL_INSTRUCTION** - Unknown opcode
+- **VMCAUSE_CR_WRITE** - Guest modified page table
+- **VMCAUSE_TIMER** - Time slice expired
+
 ```c
-case SYSCALL_EXIT:
-    proc->state = PROC_TERMINATED;
-    printf("Process %u exited with code %u\n", proc->pid, proc->registers[0]);
-    break;
+/* Guest attempts privileged instruction */
+if (instr.opcode == OP_PRIVILEGED) {
+    guest->vcpu.last_exit_cause = VMCAUSE_PRIVILEGED_INSTRUCTION;
+    guest->vcpu.state = GUEST_BLOCKED;  /* Halt guest */
+}
 ```
 
-## Virtualization Pipeline
+## Multi-Guest Execution
 
-```
-┌─────────────────────────────────────────────────────┐
-│             Virtual Machine (vm_t)                  │
-├─────────────────────────────────────────────────────┤
-│ Processes[0..15] (Each with own memory space)      │
-│ ┌──────────────┐  ┌──────────────┐                 │
-│ │ Process 0    │  │ Process 1    │  ...            │
-│ │ Registers    │  │ Registers    │                 │
-│ │ PageTable    │  │ PageTable    │                 │
-│ │ State        │  │ State        │                 │
-│ └──────────────┘  └──────────────┘                 │
-├─────────────────────────────────────────────────────┤
-│        Physical Memory (64 KB, shared)              │
-│        ┌─────────────────────────────┐             │
-│        │  Page 0 (Prog 0)            │             │
-│        │  Page 1 (Prog 1)            │             │
-│        │  Page 2 (Stack 0)           │             │
-│        │  ...                        │             │
-│        └─────────────────────────────┘             │
-└─────────────────────────────────────────────────────┘
-```
-
-## Multi-Process Execution
-
-### Example: Running Two Programs
+### Example: Running Two Guests
 
 ```bash
-./vISA program1.bin program2.bin
+./vISA guest1.bin guest2.bin
 ```
 
 **Execution Flow:**
-1. Create Process 1 with virtual address space 0-4MB, map to physical pages
-2. Create Process 2 with separate virtual address space 0-4MB, map to different physical pages
-3. Scheduler alternates between them (1000 instructions each)
-4. Page faults/interrupts trigger context switches
-5. Both processes run "concurrently" (preempted scheduling)
+1. Hypervisor creates Guest 1 with 16 KB isolated memory
+2. Hypervisor creates Guest 2 with separate 16 KB isolated memory
+3. Scheduler alternates between them (2 instructions per time slice)
+4. Each guest runs independently
+5. Page faults or special events cause VM exits
+6. Hypervisor handles exits and resumes guest
+7. Process continues until all guests halt
 
 ### Address Translation Example
 
-```c
-Process 1 virtual 0x1000
-    ↓
-Check Page Table[0] → physical_page=2
-    ↓
-Physical Address = (2 * 4096) + 0x000 = 0x2000
+```
+Guest 1 Virtual Address: 0x1234
+    ↓ (Guest Page Table Lookup)
+Guest 1 Physical Address: 0x0234 (within guest's 16KB region)
+    ↓ (Access guest memory)
+Data accessed from: guest->guest_memory[0x0234]
 ```
 
 ## Extending Virtualization

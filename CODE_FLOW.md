@@ -7,10 +7,10 @@ CMakeLists.txt
     ├─ Finds C compiler (gcc/clang)
     ├─ Includes: include/isa.h
     ├─ Source files:
-    │  ├─ src/main.c (entry point)
-    │  ├─ src/hypervisor_isa.c (execution engine)
-    │  └─ Links together
-    └─ Output: build/vISA.exe (296 KB executable)
+    │  ├─ src/main.c (entry point, hypervisor main loop)
+    │  └─ src/hypervisor_isa.c (ISA execution engine)
+    ├─ Creates executable: build/vISA.exe
+    └─ Creates library: libvisa_core.a (for future testing)
 ```
 
 ## 2. Assembly → Binary Conversion Flow
@@ -73,7 +73,7 @@ Total: 20 bytes (5 instructions × 4 bytes/instruction)
 ```c
 int main(int argc, char* argv[]) {
     // argv[0] = program name
-    // argv[1] = first guest binary path
+    // argv[1] = first guest binary path (.bin file)
     // argv[2] = second guest binary path (optional)
     // ...
     
@@ -87,16 +87,15 @@ int main(int argc, char* argv[]) {
     //       guests = empty array
     //       guest_count = 0
     
-    
-    // PHASE 2: LOAD GUESTS
+    // PHASE 2: LOAD GUESTS FROM BINARY FILES
     for (int i = 1; i < argc; i++) {
         uint32_t guest_id = hypervisor_create_guest(hv, argv[i]);
         // For each binary file:
-        // 1. Open file
-        // 2. Read bytes into guest_memory
-        // 3. Initialize page tables (identity map)
-        // 4. Set initial registers to 0
-        // 5. Set PC to 0x00
+        // 1. Open .bin file (preassembled binary)
+        // 2. Read bytes into guest's guest_memory (16KB region)
+        // 3. Initialize page tables (2-level, guest identity map)
+        // 4. Set all registers to 0
+        // 5. Set PC (Program Counter) to 0x00
         // 6. Set state to GUEST_RUNNING
         // 7. Increment guest_count
     }

@@ -83,24 +83,29 @@ Guests exit to hypervisor for various reasons:
 
 ### 3. **Two-Level Address Translation**
 
-Real hypervisors have this:
+vISA implements two-level address translation like real hypervisors:
 
 ```
-Guest Virtual Address (GVA)
+Guest Virtual Address (GVA) from guest instructions
     ↓ [Guest Page Table]
-Guest Physical Address (GPA)
-    ↓ [Hypervisor's EPT - Extended Page Table]
-Host Physical Address (HPA) ← Actual RAM
+Guest Physical Address (GPA) within guest's 16KB memory
+    ↓ [Host Physical Address Calculation]
+Host Physical Address (HPA) ← Actual position in 64KB hypervisor memory
 ```
 
-In your implementation:
+Implementation:
 
 ```c
-/* Guest handles: GVA → GPA */
+/* Guest-side: GVA → GPA via guest page tables */
 uint32_t guest_phys_addr = guest_translate_address(guest, guest_virt_addr);
+if (guest_phys_addr == 0xFFFFFFFF) {
+    /* Page fault - guest physical address not valid */
+    vmexit_reason = VMCAUSE_PAGE_FAULT;
+}
 
-/* Hypervisor handles: GPA → HPA */
+/* Hypervisor-side: GPA → HPA for actual memory access */
 uint32_t host_phys_addr = host_translate_address(hv, guest_phys_addr);
+uint8_t data = hv->host_memory[host_phys_addr];
 ```
 
 ### 4. **Virtual CPU (vCPU)**
@@ -109,13 +114,15 @@ Each guest has its own virtual CPU with complete isolated state:
 
 ```c
 typedef struct {
-    uint32_t registers[32];        /* Isolated registers */
+    uint32_t registers[32];        /* Isolated 32 registers (r0-r31) */
     uint32_t pc;                   /* Program counter */
-    guest_page_table_entry_t guest_page_table[...];  /* Page tables */
+    guest_state_t state;           /* RUNNING, STOPPED, BLOCKED, PAUSED */
+    vmcs_t vmcs;                   /* VM Control Structure */
+    guest_page_table_entry_t page_table[...];  /* 2-level page tables */
 } vcpu_t;
 ```
 
-**Key point:** Guest thinks it has a real CPU, but it's simulated by hypervisor.
+**Key point:** Each guest thinks it has a real CPU, but it's completely emulated and managed by hypervisor. Guest memory is isolated and can only be accessed through page table translation.
 
 ### 5. **Hypercalls**
 
@@ -139,15 +146,23 @@ case HYPERCALL_EXIT:
 
 ## Execution Flow
 
-### Single Guest Execution
+### Single Guest Execution Time Slice
 
 ```c
-hypervisor_run_guest(hv, guest_id)
-    ├─ vmentry()              /* Switch to guest mode */
-    ├─ fetch instruction from guest memory
-    ├─ execute instruction
-    ├─ if (special event)
-    │   └─ vmexit()           /* Exit to host */
+/* Main hypervisor loop - round-robin scheduling */
+while (!all_guests_stopped) {
+    for (each guest) {
+        if (guest->state == GUEST_RUNNING) {
+            /* Run 2-instruction time slice */
+            for (int i = 0; i < 2; i++) {
+                ├─ Fetch instruction from guest memory via address translation
+                ├─ Execute instruction (ADD, MOV, LOAD, etc.)
+                ├─ Update guest PC
+                └─ if (halt or special event) → VMEXIT
+            }
+        }
+    }
+}
     │      └─ handle_vmexit() /* Host handles it */
     │         └─ vmentry()    /* Resume guest */
     └─ repeat until HALT

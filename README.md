@@ -4,18 +4,18 @@ A custom Instruction Set Architecture (ISA) emulator written in C, designed with
 
 ## Project Structure
 
-- **`src/`** - Core VM implementation
-  - `vm.c/h` - Main virtual machine (CPU execution loop)
-  - `main.c` - Entry point
+- **`src/`** - Hypervisor implementation
+  - `main.c` - Entry point and hypervisor main loop
+  - `hypervisor_isa.c` - ISA execution engine
   
 - **`include/`** - Public headers
-  - `isa.h` - ISA definitions and API
+  - `isa.h` - ISA definitions (22 instructions, VM structures)
   
 - **`examples/`** - Example programs and tools
-  - `assembler.py` - Convert assembly to binary
-  - `programs/` - Example ISA programs
+  - `assembler.py` - Convert assembly (.isa) to binary (.bin)
+  - `programs/` - Example ISA programs and test cases
 
-- **`tests/`** - Unit tests (to be added)
+- **`tests/`** - Unit tests (future)
 
 ## Building
 
